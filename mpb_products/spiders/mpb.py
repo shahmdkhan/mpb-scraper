@@ -393,8 +393,10 @@ class MpbSpider(Spider):
         return subject, content
 
     def load_cookies(self):
-        with open("input/mpb_cookies.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+        # with open("input/mpb_cookies.json", "r", encoding="utf-8") as f:
+        #     return json.load(f)
+
+        return {}
 
     def close(self, reason):
         end_time = datetime.utcnow()
