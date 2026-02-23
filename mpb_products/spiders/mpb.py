@@ -1,5 +1,8 @@
+import csv
 import json
 import os
+import smtplib
+from email.message import EmailMessage
 from math import ceil
 import uuid
 from datetime import datetime
@@ -13,7 +16,7 @@ class MpbSpider(Spider):
     base_url = 'https://www.mpb.com/nl-nl'
 
     custom_settings = {
-        'CONCURRENT_REQUESTS': 1,
+        'CONCURRENT_REQUESTS': 4,
 
         "PLAYWRIGHT_BROWSER_TYPE": "chromium",
         "PLAYWRIGHT_LAUNCH_OPTIONS": {"headless": True},
@@ -39,16 +42,28 @@ class MpbSpider(Spider):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.cookies = self.load_cookies()
+        self.duplicate_skipped_counter = 0
+        self.summary_data = {}
+        self.gmail_config = self.get_configuration_from_txt('input/email_alert_config.txt')
+        self.sender_email = self.gmail_config.get('SENDER_EMAIL')
+        self.receiver_email = self.gmail_config.get('RECEIVER_EMAIL')
+        # self.email_obj = self.build_connection_with_gmail()  # Login to Gmail with app password
+        self.notes_filename = 'input/mpb_product_notes.csv'
+        self.output_filename = f'output/mpb_products_{datetime.now().strftime("%d%m%Y%H%M")}.json'
+        self.failed_pages_status = []
+        self.seen_product_notes_items = {row.get('sku'):row.get('notes') for row in self.read_csv_file() if row.get('sku')}
+        self.seen_product_notes_skus = set(self.seen_product_notes_items.keys())
         self.seen_product_urls = []
-        self.output_filename = f'output/mpb products {datetime.now().strftime("%d%m%Y%H%M")}.json'
         self.current_scrapped_items = []
         self.start_time = datetime.utcnow()
         self.failed_pages = 0
 
     def start_requests(self):
-        # url = 'https://www.mpb.com/search-service/product/query/?filter_query[object_type]=product&filter_query[product_condition_star_rating]=%5B1%20TO%205%5D%20AND%20NOT%200&filter_query[product_last_online]=%5B2026-02-14T00%3A00%3A00.000Z%20TO%20%2A%5D&filter_query[model_market]=EU&filter_query[model_available]=true&filter_query[model_is_published_out]=true&field_list=model_name&field_list=model_description&field_list=product_price&field_list=model_url_segment&field_list=product_sku&field_list=product_condition&field_list=product_shutter_count&field_list=product_hour_count&field_list=product_battery_charge_count&field_list=product_id&field_list=product_images&field_list=model_id&field_list=product_price_reduction&field_list=product_price_original&field_list=product_price_modifiers&field_list=model_available_new&sort[product_last_online]=DESC&facet_minimum_count=1&facet_field=model_brand&facet_field=model_category&facet_field=model_product_type&facet_field=product_condition_star_rating&facet_field=product_price&facet_field=%2A&start=0&rows=1000&minimum_match=100%25'
+        #working url below
         url = 'https://www.mpb.com/search-service/product/query/?filter_query[object_type]=product&filter_query[product_condition_star_rating]=%5B1%20TO%205%5D%20AND%20NOT%200&filter_query[model_market]=EU&filter_query[model_available]=true&filter_query[model_is_published_out]=true&field_list=model_name&field_list=model_description&field_list=product_price&field_list=model_url_segment&field_list=product_sku&field_list=product_condition&field_list=product_shutter_count&field_list=product_hour_count&field_list=product_battery_charge_count&field_list=product_id&field_list=product_images&field_list=model_id&field_list=product_price_reduction&field_list=product_price_original&field_list=product_price_modifiers&field_list=model_available_new&sort[product_last_online]=DESC&facet_minimum_count=1&facet_field=model_brand&facet_field=model_category&facet_field=model_product_type&facet_field=product_condition_star_rating&facet_field=product_price&facet_field=%2A&start=0&rows=1000&minimum_match=100%25'
-        yield Request(url=url, headers=self.headers, meta={"playwright": True}, errback=self.errback_handler)
+        yield Request(url=url, headers=self.headers, meta={"playwright": True}, errback=self.errback_handler,
+                      cookies=self.cookies)
 
     def parse(self, response, **kwargs):
         yield from self.parse_products(response)
@@ -64,7 +79,7 @@ class MpbSpider(Spider):
         for page_number in range(1,total_page+1):
             next_page_url = response.url.replace('&start=0',f'&start={page_number*1000}')
             yield Request(url=next_page_url, headers=self.headers, meta={"playwright": True},
-                          callback=self.parse_products,errback=self.errback_handler)
+                          callback=self.parse_products,errback=self.errback_handler, cookies=self.cookies)
 
     def parse_products(self, response):
         try:
@@ -83,6 +98,7 @@ class MpbSpider(Spider):
             product_url = f'https://www.mpb.com/nl-nl/product/{product_slug}/sku-{product_sku}'
 
             if product_url in self.seen_product_urls:
+                self.duplicate_skipped_counter += 1
                 continue
 
             item = dict()
@@ -95,11 +111,22 @@ class MpbSpider(Spider):
             item['notes'] = ''
             item['url'] = product_url
 
-            # yield item
-            # self.current_scrapped_items.append(item)
             self.seen_product_urls.append(product_url)
 
-            yield Request(url=product_url, headers=self.headers, meta={"playwright": True, 'row':row},
+            # for testing
+            self.current_scrapped_items.append(item)
+            yield item
+            continue
+
+            # check if product input already scrapped in file then we don't need to do detail page request
+            #we are doing detail page only for input
+            if product_sku in self.seen_product_notes_skus:
+                item['notes'] = self.seen_product_notes_items.get(product_sku)
+                self.current_scrapped_items.append(item)
+                yield item
+                continue
+
+            yield Request(url=product_url, headers=self.headers, meta={"playwright": True},
                           callback=self.parse_details,errback=self.errback_handler)
 
     def parse_details(self, response):
@@ -123,10 +150,19 @@ class MpbSpider(Spider):
 
         self.current_scrapped_items.append(item)
 
+        #write input into csv file to reduce request in future
+        self.write_item_into_csv_file(item={'sku':item['sku'], 'notes':item['notes']})
+
         yield item
 
     def errback_handler(self, failure):
+        try:
+            request_status = failure.value.response.status
+        except:
+            request_status = None
+
         self.failed_pages += 1
+        self.failed_pages_status.append(request_status)
 
     def format_scraped_data(self, status="completed", failed_pages=0, duration_seconds=0):
         """
@@ -148,6 +184,7 @@ class MpbSpider(Spider):
                 shutter_count = None
 
             variant = {
+                # "url": item["url"], #FOR TESTING
                 "sku": item["sku"],
                 "price": float(item["price"]) if item["price"] else None,
                 "condition": item["condition"].replace("_", " ").title(),
@@ -180,6 +217,9 @@ class MpbSpider(Spider):
             "products": products
         }
 
+        #store results for email
+        self.summary_data = result
+
         # to ensure that all  directories are exists
         os.makedirs(os.path.dirname(self.output_filename), exist_ok=True)
 
@@ -198,6 +238,147 @@ class MpbSpider(Spider):
         except:
             return None
 
+    def read_csv_file(self):
+        try:
+            with open(self.notes_filename, mode='r', encoding='utf-8') as csv_file:
+                return list(csv.DictReader(csv_file))
+        except:
+            return []
+
+    def write_item_into_csv_file(self, item):
+        # to ensure that all  directories are exists
+        os.makedirs(os.path.dirname(self.notes_filename), exist_ok=True)
+        fieldnames = item.keys()
+
+        with open(self.notes_filename, mode='a', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            if csvfile.tell() == 0:
+                writer.writeheader()
+
+            writer.writerow(item)
+
+    def get_configuration_from_txt(self, filename):
+        with open(filename, mode='r') as file:
+            lines = file.readlines()
+
+        config = {}
+
+        for line in lines:
+
+            try:
+                key, value = line.strip().split('==')
+                config[key] = value
+            except ValueError:
+                pass
+            except AttributeError:
+                pass
+
+        return config
+
+    def build_connection_with_gmail(self):
+        sender_app_password = self.gmail_config.get('SENDER_EMAIL_APP_PASSWORD')
+
+        try:
+            email_obj = smtplib.SMTP('smtp.gmail.com', 587)
+            email_obj.starttls()
+            email_obj.login(self.sender_email, sender_app_password)
+
+            self.logger.info('\n\nGmail Authentication successful...!!\n')
+            return email_obj
+
+        except Exception as e:
+            self.logger.error('\n\nGmail Authentication failed......!!!\nPlease check your login credentials')
+
+    def send_email_to_client(self):
+        """
+        Send scraping summary email using summary_data dictionary.
+        """
+
+        subject, content = self.get_email_body_and_subject()
+
+        # Prepare EmailMessage
+        msg = EmailMessage()
+        msg['To'] = self.receiver_email
+        msg['From'] = self.sender_email
+        msg['Subject'] = subject
+        msg.add_alternative(content, subtype='html')
+
+        # Send email with retry logic
+        for i in range(2):
+            try:
+                self.email_obj.send_message(msg)
+                print(f'\n\nEmail Sent Successfully to {self.receiver_email}\n')
+                break
+            except Exception as e:
+                print(f'Error in sending Email: {e.args}')
+                print('Retrying Email Sending...')
+                self.email_obj = self.build_connection_with_gmail()
+
+    def get_email_body_and_subject(self):
+        total_products = self.summary_data["stats"]["total_products"]
+        total_variants = self.summary_data["stats"]["total_variants"]
+        failed_pages = self.summary_data["stats"]["failed_pages"]
+        duration_seconds = self.summary_data["stats"]["duration_seconds"]
+        scrape_timestamp = self.summary_data["scrape_timestamp"]
+        scrape_run_id = self.summary_data["scrape_run_id"]
+        status = self.summary_data.get("status", "completed").title()
+
+        # Email subject with source
+        subject = f"MPB Scrape Summary: {total_products} Products, {total_variants} Variants"
+
+        # HTML content with source mention
+        content = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333;">
+                <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
+                    <h2 style="text-align: center; color: #2a7ae2;">📋 Scraping Summary Report</h2>
+                    <p><strong>Scrape Run ID:</strong> <code>{scrape_run_id}</code></p>
+                    <p><strong>Timestamp:</strong> {scrape_timestamp}</p>
+                    <p><strong>Status:</strong> 
+                        <span style="
+                            color: {'green' if status.lower() == 'completed' else 'red'};
+                            font-weight: bold;
+                            padding: 3px 8px;
+                            border-radius: 5px;
+                            background-color: {'#d4edda' if status.lower() == 'completed' else '#f8d7da'};
+                        ">
+                            {status}
+                        </span>
+                    </p>
+
+                    <h3 style="color: #2a7ae2;">Statistics</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Total Products</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{total_products}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Total Variants</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{total_variants}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Failed Pages</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd; color: {'red' if failed_pages > 0 else 'green'};">
+                                {failed_pages}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Duration (seconds)</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{duration_seconds}</td>
+                        </tr>
+                    </table>
+                </div>
+            </body>
+        </html>
+        """
+
+        return subject, content
+
+    def load_cookies(self):
+        with open("input/mpb_cookies.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+
     def close(self, reason):
         end_time = datetime.utcnow()
         duration_seconds = int((end_time - self.start_time).total_seconds())
@@ -209,4 +390,5 @@ class MpbSpider(Spider):
             failed_pages=self.failed_pages,
             duration_seconds=duration_seconds
         )
-        d=1
+
+        # self.send_email_to_client()
