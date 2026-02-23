@@ -98,3 +98,8 @@ class MpbProductsDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+
+class DataImpulseProxyMiddleware:
+    def process_request(self, request, spider):
+        request.meta["proxy"] = "http://a81a192a105ce445337b__cr.nl:df1bb30ecb142960@gw.dataimpulse.com:823"
