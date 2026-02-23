@@ -65,7 +65,7 @@ class MpbSpider(Spider):
         self.gmail_config = self.get_configuration_from_txt('input/email_alert_config.txt')
         self.sender_email = self.gmail_config.get('SENDER_EMAIL')
         self.receiver_email = self.gmail_config.get('RECEIVER_EMAIL')
-        # self.email_obj = self.build_connection_with_gmail()  # Login to Gmail with app password
+        self.email_obj = self.build_connection_with_gmail()  # Login to Gmail with app password
         self.notes_filename = 'input/mpb_product_notes.csv'
         self.output_filename = f'output/mpb_products_{datetime.now().strftime("%d%m%Y%H%M")}.json'
         self.failed_pages_status = []
@@ -83,7 +83,7 @@ class MpbSpider(Spider):
                       cookies=self.cookies)
 
     def parse(self, response, **kwargs):
-        yield from self.parse_products(response)
+        # yield from self.parse_products(response)  # TODO: Uncomment this line for production
 
         try:
             json_data = json.loads(response.css('pre ::text').get(''))
@@ -91,7 +91,8 @@ class MpbSpider(Spider):
             json_data = {}
 
         total_results = json_data.get('total_results') or 0
-        total_page =  ceil(total_results/1000)
+        # total_page = ceil(total_results/1000)
+        total_page = 1  # TODO: remove this line and uncomment above line
 
         for page_number in range(1,total_page+1):
             next_page_url = response.url.replace('&start=0',f'&start={page_number*1000}')
@@ -130,13 +131,8 @@ class MpbSpider(Spider):
 
             self.seen_product_urls.append(product_url)
 
-            # for testing
-            self.current_scrapped_items.append(item)
-            yield item
-            continue
-
-            # check if product input already scrapped in file then we don't need to do detail page request
-            #we are doing detail page only for input
+            # check if product notes already scrapped in file then we don't need to do detail page request
+            # we are requesting detail page only for notes
             if product_sku in self.seen_product_notes_skus:
                 item['notes'] = self.seen_product_notes_items.get(product_sku)
                 self.current_scrapped_items.append(item)
@@ -410,4 +406,4 @@ class MpbSpider(Spider):
             duration_seconds=duration_seconds
         )
 
-        # self.send_email_to_client()
+        self.send_email_to_client()

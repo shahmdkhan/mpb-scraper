@@ -3,8 +3,8 @@
 # The receiver could be any Email ID and the bot will send the email alerts to this Email.
 
 
-# You have to put your email here and the bot will send alerts to that email
-RECEIVER_EMAIL==usamabinislam02@gmail.com
+# Put your email here and the bot will send alerts to that email
+RECEIVER_EMAIL==shopanalytics@outlook.com
 
 
 
