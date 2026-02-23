@@ -28,21 +28,21 @@ class MpbSpider(Spider):
         },
 
         # Middlewares
-        "DOWNLOADER_MIDDLEWARES": {
-            "mpb_products.middlewares.DataImpulseProxyMiddleware": 350,
-            "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware": 400,
-        },
-
-        # # ⭐ DataImpulse proxy inside Playwright
-        # "PLAYWRIGHT_CONTEXTS": {
-        #     "default": {
-        #         "proxy": {
-        #             "server": "http://gw.dataimpulse.com:823",
-        #             "username": "a81a192a105ce445337b__cr.nl",
-        #             "password": "df1bb30ecb142960",
-        #         }
-        #     }
+        # "DOWNLOADER_MIDDLEWARES": {
+        #     "mpb_products.middlewares.DataImpulseProxyMiddleware": 350,
+        #     "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware": 400,
         # },
+
+        # ⭐ DataImpulse proxy inside Playwright
+        "PLAYWRIGHT_CONTEXTS": {
+            "default": {
+                "proxy": {
+                    "server": "http://gw.dataimpulse.com:823",
+                    "username": "a81a192a105ce445337b__cr.nl",
+                    "password": "df1bb30ecb142960",
+                }
+            }
+        },
 
         "PLAYWRIGHT_MAX_PAGES_PER_CONTEXT": 4,
 
