@@ -16,7 +16,7 @@ class MpbSpider(Spider):
     base_url = 'https://www.mpb.com/nl-nl'
 
     custom_settings = {
-        'CONCURRENT_REQUESTS': 4,
+        'CONCURRENT_REQUESTS': 1,
 
         "PLAYWRIGHT_BROWSER_TYPE": "chromium",
         "PLAYWRIGHT_LAUNCH_OPTIONS": {"headless": True},
@@ -79,25 +79,40 @@ class MpbSpider(Spider):
     def start_requests(self):
         #working url below
         url = 'https://www.mpb.com/search-service/product/query/?filter_query[object_type]=product&filter_query[product_condition_star_rating]=%5B1%20TO%205%5D%20AND%20NOT%200&filter_query[model_market]=EU&filter_query[model_available]=true&filter_query[model_is_published_out]=true&field_list=model_name&field_list=model_description&field_list=product_price&field_list=model_url_segment&field_list=product_sku&field_list=product_condition&field_list=product_shutter_count&field_list=product_hour_count&field_list=product_battery_charge_count&field_list=product_id&field_list=product_images&field_list=model_id&field_list=product_price_reduction&field_list=product_price_original&field_list=product_price_modifiers&field_list=model_available_new&sort[product_last_online]=DESC&facet_minimum_count=1&facet_field=model_brand&facet_field=model_category&facet_field=model_product_type&facet_field=product_condition_star_rating&facet_field=product_price&facet_field=%2A&start=0&rows=1000&minimum_match=100%25'
-        yield Request(url=url, headers=self.headers, meta={"playwright": True}, errback=self.errback_handler,
+        yield Request(url=url, headers=self.headers,
+                      # meta={"playwright": True},
+                      meta={
+                          "playwright": True,
+                          "playwright_page_methods": [
+                              ("wait_for_load_state", "networkidle"),
+                          ],
+                      },
+                      errback=self.errback_handler,
                       cookies=self.cookies)
 
     def parse(self, response, **kwargs):
-        # yield from self.parse_products(response)  # TODO: Uncomment this line for production
+        yield from self.parse_products(response)
 
-        try:
-            json_data = json.loads(response.css('pre ::text').get(''))
-        except:
-            json_data = {}
-
-        total_results = json_data.get('total_results') or 0
+        # # TODO: Uncomment these below code lines for production
+        # try:
+        #     json_data = json.loads(response.css('pre ::text').get(''))
+        # except:
+        #     json_data = {}
+        #
+        # total_results = json_data.get('total_results') or 0
         # total_page = ceil(total_results/1000)
-        total_page = 1  # TODO: remove this line and uncomment above line
-
-        for page_number in range(1,total_page+1):
-            next_page_url = response.url.replace('&start=0',f'&start={page_number*1000}')
-            yield Request(url=next_page_url, headers=self.headers, meta={"playwright": True},
-                          callback=self.parse_products,errback=self.errback_handler, cookies=self.cookies)
+        #
+        # for page_number in range(1,total_page+1):
+        #     next_page_url = response.url.replace('&start=0',f'&start={page_number*1000}')
+        #     yield Request(url=next_page_url, headers=self.headers,
+        #                   # meta={"playwright": True},
+        #                   meta={
+        #                       "playwright": True,
+        #                       "playwright_page_methods": [
+        #                           ("wait_for_load_state", "networkidle"),
+        #                       ],
+        #                   },
+        #                   callback=self.parse_products,errback=self.errback_handler, cookies=self.cookies)
 
     def parse_products(self, response):
         try:
@@ -107,7 +122,7 @@ class MpbSpider(Spider):
 
         results = json_data.get('results') or []
 
-        for row in results:
+        for row in results[:100]:  # TODO: remove the 100 slicing
             product_sku = self.get_first_value(row, 'product_sku')
             if not product_sku:
                 continue
@@ -139,7 +154,14 @@ class MpbSpider(Spider):
                 yield item
                 continue
 
-            yield Request(url=product_url, headers=self.headers, meta={"playwright": True},
+            yield Request(url=product_url, headers=self.headers,
+                          # meta={"playwright": True},
+                          meta={
+                              "playwright": True,
+                              "playwright_page_methods": [
+                                  ("wait_for_load_state", "networkidle"),
+                              ],
+                          },
                           callback=self.parse_details,errback=self.errback_handler)
 
     def parse_details(self, response):
