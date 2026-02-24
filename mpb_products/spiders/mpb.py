@@ -8,7 +8,8 @@ import uuid
 from datetime import datetime
 from collections import defaultdict
 
-from curl_cffi import requests
+# from curl_cffi import requests
+import requests
 from scrapy import Spider, Request, Selector
 
 
@@ -127,7 +128,7 @@ class MpbSpider(Spider):
 
         results = json_data.get('results') or []
 
-        for row in results[:100]:  # TODO: remove the 100 slicing
+        for row in results[:5]:  # TODO: remove the 100 slicing
             product_sku = self.get_first_value(row, 'product_sku')
             if not product_sku:
                 continue
@@ -173,7 +174,14 @@ class MpbSpider(Spider):
             #               callback=self.parse_details,errback=self.errback_handler)
 
     def parse_details(self, product_url):
-        product_response = requests.get(product_url, headers=self.headers, impersonate="chrome")
+        # product_response = requests.get(product_url, headers=self.headers, impersonate="chrome")
+
+        proxy = 'http://a81a192a105ce445337b__cr.nl:df1bb30ecb142960@gw.dataimpulse.com:823'
+        proxies = {
+            "http": proxy,
+            "https": proxy,
+        }
+        product_response = requests.get(product_url, headers=self.headers, proxies=proxies)
         print(f'\nResponse status:{product_response.status_code} for Product:{product_url}\n')
 
         response = Selector(text=product_response.text)
