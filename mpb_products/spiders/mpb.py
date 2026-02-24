@@ -181,7 +181,9 @@ class MpbSpider(Spider):
             "http": proxy,
             "https": proxy,
         }
-        product_response = requests.get(product_url, headers=self.headers, proxies=proxies)
+        product_response = requests.get(product_url, headers=self.headers, proxies=proxies, timeout=100)
+        # product_response = requests.get(product_url, headers=self.headers, impersonate="chrome")
+
         print(f'\nResponse status:{product_response.status_code} for Product:{product_url}\n')
 
         response = Selector(text=product_response.text)
@@ -247,7 +249,7 @@ class MpbSpider(Spider):
                 # "url": item["url"], #FOR TESTING
                 "sku": item["sku"],
                 "price": float(item["price"]) if item["price"] else None,
-                "condition": item["condition"].replace("_", " ").title(),
+                "condition": str(item["condition"]).replace("_", " ").title() if item["condition"] else None,
                 "availability": item["availability"],
                 "shutter_count": shutter_count,
                 "notes": item["notes"] if item["notes"] else None
