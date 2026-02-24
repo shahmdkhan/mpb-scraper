@@ -8,8 +8,8 @@ import uuid
 from datetime import datetime
 from collections import defaultdict
 
-# from curl_cffi import requests
-import requests
+from curl_cffi import requests
+# import requests
 from scrapy import Spider, Request, Selector
 
 
@@ -178,11 +178,11 @@ class MpbSpider(Spider):
 
         proxy = 'http://a81a192a105ce445337b__cr.nl:df1bb30ecb142960@gw.dataimpulse.com:823'
         proxies = {
-            "http": proxy,
-            # "https": proxy,
+            # "http": proxy,
+            "https": proxy,
         }
-        product_response = requests.get(product_url, headers=self.headers, proxies=proxies, timeout=100, verify=False)
-        # product_response = requests.get(product_url, headers=self.headers, impersonate="chrome")
+        # product_response = requests.get(product_url, headers=self.headers, proxies=proxies, timeout=100, verify=False)
+        product_response = requests.get(product_url, headers=self.headers, impersonate="chrome", proxies=proxies, timeout=60)
 
         print(f'\nResponse status:{product_response.status_code} for Product:{product_url}\n')
 
