@@ -128,7 +128,7 @@ class MpbSpider(Spider):
 
         results = json_data.get('results') or []
 
-        for row in results[:5]:  # TODO: remove the 100 slicing
+        for row in results[:100]:  # TODO: remove the 100 slicing
             product_sku = self.get_first_value(row, 'product_sku')
             if not product_sku:
                 continue
