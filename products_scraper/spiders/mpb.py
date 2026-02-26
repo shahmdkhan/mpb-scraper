@@ -127,7 +127,7 @@ class MpbSpider(BaseSpider):
             # we are requesting detail page only for notes
             if product_sku in self.seen_product_notes_skus:
                 self.variants_found_existing += 1
-                print(f'\n\nVariant found in CSV: {self.variants_found_existing}\n\n')
+                print(f"\n\nVariant's notes found in CSV: {self.variants_found_existing}\n\n")
                 item['notes'] = self.seen_product_notes_items.get(product_sku)
                 self.current_scrapped_items.append(item)
                 yield item
@@ -137,8 +137,7 @@ class MpbSpider(BaseSpider):
 
     def parse_details(self, product_url, listing_item):
         self.details_called += 1
-        print(f'\n\nparse_details called: {self.details_called}\n\n')
-        return
+        print(f'\n\nparse_details called for new variants: {self.details_called}\n\n')
 
         product_response = self.fetch_product_url_response(product_url)
 
