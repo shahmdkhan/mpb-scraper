@@ -321,4 +321,4 @@ class BaseSpider(Spider):
             duration_seconds=duration_seconds
         )
 
-        # self.send_email_to_client()
+        self.send_email_to_client()

@@ -80,7 +80,7 @@ class MpbSpider(BaseSpider):
         self.total_results = json_data.get('total_results') or 0
         total_page = ceil(self.total_results / 1000)
 
-        for page_number in range(1,total_page+1):
+        for page_number in range(1, total_page + 1):
             next_page_url = response.url.replace('&start=0', f'&start={page_number * 1000}')
             yield Request(url=next_page_url, headers=self.headers,
                           meta={
@@ -137,9 +137,7 @@ class MpbSpider(BaseSpider):
 
     def parse_details(self, product_url, listing_item):
         self.details_called += 1
-        print(f'\n\nparse_details called for new variants: {self.details_called}\n\n')
-
-        return
+        print(f'\n\nNew variant found: {self.details_called}\n\n')
 
         product_response = self.fetch_product_url_response(product_url)
 
@@ -160,12 +158,16 @@ class MpbSpider(BaseSpider):
         product_info = json_data.get('productInfo') or {}
 
         item = dict()
-        item['product_title'] = product_info.get('name') or response.css('.product-name ::text').get('') or model_info.get('brand', {}).get('name')
+        item['product_title'] = product_info.get('name') or response.css('.product-name ::text').get(
+            '') or model_info.get('brand', {}).get('name')
         item['sku'] = product_info.get('sku')
         item['price'] = product_info.get('listPrice')
         item['condition'] = product_info.get('condition')
         item['availability'] = 'in_stock' if not product_info.get('isSold') else 'out_of_stock'
-        item['shutter_count'] = ''.join([attr.get('content') for attr in product_info.get('attributes', []) or [] if attr.get('name', '').lower() == 'SHUTTER_COUNT'.lower()][:1]).strip() or response.css('[data-testid="product-details__shutter-count-attribute__title"] strong ::text').get('')
+        item['shutter_count'] = ''.join([attr.get('content') for attr in product_info.get('attributes', []) or [] if
+                                         attr.get('name', '').lower() == 'SHUTTER_COUNT'.lower()][
+                                        :1]).strip() or response.css(
+            '[data-testid="product-details__shutter-count-attribute__title"] strong ::text').get('')
         item['notes'] = ', '.join([r.get('tierDescription') for r in product_info.get('observations', []) or []])
         item['url'] = product_url
 
@@ -177,7 +179,7 @@ class MpbSpider(BaseSpider):
 
         self.current_scrapped_items.append(item)
 
-        # write input into csv file to reduce request in future
+        # write notes into csv file to reduce request in future
         self.write_item_into_csv_file(item={'sku': item['sku'], 'notes': item['notes']})
 
         yield item
@@ -194,5 +196,5 @@ class MpbSpider(BaseSpider):
             return None
 
     def close(self, reason):
-        print(f"\n\nVariant's notes found in CSV: {self.variants_found_existing}\n\n")
-        print(f'\n\nparse_details called for new variants: {self.details_called}\n\n')
+        print(f"\n\nUsed Existing Variant's Notes: {self.variants_found_existing}\n\n")
+        print(f'New Variants Found: {self.details_called}\n\n')
