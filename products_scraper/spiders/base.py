@@ -41,7 +41,7 @@ class BaseSpider(Spider):
         self.email_obj = self.build_connection_with_gmail()  # Login to Gmail with app password
 
         #output filenames
-        self.notes_filename = f'{self.name}_products_notes.csv'
+        self.mpb_notes_filename = f'mpb_products_notes.csv'
         self.output_filename = f'output/{self.name}/{self.name}_products_{datetime.now().strftime("%d%m%Y%H%M")}.json'
         self.failed_pages_status = []
 
@@ -171,17 +171,16 @@ class BaseSpider(Spider):
 
     def read_csv_file(self):
         try:
-            with open(self.notes_filename, mode='r', encoding='utf-8') as csv_file:
+            with open(self.mpb_notes_filename, mode='r', encoding='utf-8') as csv_file:
                 return list(csv.DictReader(csv_file))
         except:
             return []
 
     def write_item_into_csv_file(self, item):
         # to ensure that all  directories are exists
-        os.makedirs(os.path.dirname(self.notes_filename), exist_ok=True)
         fieldnames = item.keys()
 
-        with open(self.notes_filename, mode='a', newline='', encoding='utf-8') as csvfile:
+        with open(self.mpb_notes_filename, mode='a', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             if csvfile.tell() == 0:
