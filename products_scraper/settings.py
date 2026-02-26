@@ -1,4 +1,4 @@
-# Scrapy settings for mpb_products project
+# Scrapy settings for products_scraper project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,16 +7,16 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "mpb_products"
+BOT_NAME = "products_scraper"
 
-SPIDER_MODULES = ["mpb_products.spiders"]
-NEWSPIDER_MODULE = "mpb_products.spiders"
+SPIDER_MODULES = ["products_scraper.spiders"]
+NEWSPIDER_MODULE = "products_scraper.spiders"
 
 ADDONS = {}
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "mpb_products (+http://www.yourdomain.com)"
+#USER_AGENT = "products_scraper (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
@@ -41,13 +41,13 @@ ROBOTSTXT_OBEY = False
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "mpb_products.middlewares.MpbProductsSpiderMiddleware": 543,
+#    "products_scraper.middlewares.MpbProductsSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "mpb_products.middlewares.MpbProductsDownloaderMiddleware": 543,
+#    "products_scraper.middlewares.MpbProductsDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -59,7 +59,7 @@ ROBOTSTXT_OBEY = False
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "mpb_products.pipelines.MpbProductsPipeline": 300,
+#    "products_scraper.pipelines.MpbProductsPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)

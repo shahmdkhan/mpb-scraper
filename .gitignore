@@ -13,7 +13,7 @@ __pycache__/
 playwright/
 
 # Environment variables
-.env
+# products_scraper/.env
 
 # IDE
 .idea/
@@ -24,4 +24,4 @@ playwright/
 Thumbs.db
 
 # output files
-mpb_products/output/
+products_scraper/output/
