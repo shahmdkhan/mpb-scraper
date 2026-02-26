@@ -53,6 +53,9 @@ class MpbSpider(BaseSpider):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
     }
 
+    variants_found_existing = 0
+    details_called = 0
+
     def start_requests(self):
         # working url below
         url = 'https://www.mpb.com/search-service/product/query/?filter_query[object_type]=product&filter_query[product_condition_star_rating]=%5B1%20TO%205%5D%20AND%20NOT%200&filter_query[model_market]=EU&filter_query[model_available]=true&filter_query[model_is_published_out]=true&field_list=model_name&field_list=model_description&field_list=product_price&field_list=model_url_segment&field_list=product_sku&field_list=product_condition&field_list=product_shutter_count&field_list=product_hour_count&field_list=product_battery_charge_count&field_list=product_id&field_list=product_images&field_list=model_id&field_list=product_price_reduction&field_list=product_price_original&field_list=product_price_modifiers&field_list=model_available_new&sort[product_last_online]=DESC&facet_minimum_count=1&facet_field=model_brand&facet_field=model_category&facet_field=model_product_type&facet_field=product_condition_star_rating&facet_field=product_price&facet_field=%2A&start=0&rows=1000&minimum_match=100%25'
@@ -123,6 +126,8 @@ class MpbSpider(BaseSpider):
             # check if product notes already scrapped in file then we don't need to do detail page request
             # we are requesting detail page only for notes
             if product_sku in self.seen_product_notes_skus:
+                self.variants_found_existing += 1
+                print(f'\n\nVariant found in CSV: {self.variants_found_existing}\n\n')
                 item['notes'] = self.seen_product_notes_items.get(product_sku)
                 self.current_scrapped_items.append(item)
                 yield item
@@ -131,6 +136,10 @@ class MpbSpider(BaseSpider):
             yield from self.parse_details(product_url=product_url, listing_item=item)
 
     def parse_details(self, product_url, listing_item):
+        self.details_called += 1
+        print(f'\n\nparse_details called: {self.details_called}\n\n')
+        return
+
         product_response = self.fetch_product_url_response(product_url)
 
         # if product request failed then we write listing page data
