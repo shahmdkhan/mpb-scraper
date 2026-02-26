@@ -1,4 +1,4 @@
-copy .env_example and rename it to .env and fill required fields
+copy .env_example, paste inside the products_scraper directory and rename it to .env and fill required fields
 
 install the required packages with the commands: 
 pip install -r requirements.txt
