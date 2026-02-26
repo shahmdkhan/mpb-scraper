@@ -195,6 +195,6 @@ class MpbSpider(BaseSpider):
         except:
             return None
 
-    def close(self, reason):
-        print(f"\n\nUsed Existing Variant's Notes: {self.variants_found_existing}\n\n")
-        print(f'New Variants Found: {self.details_called}\n\n')
+    # def close(self, reason):
+    #     print(f"\n\nUsed Existing Variant's Notes: {self.variants_found_existing}\n\n")
+    #     print(f'New Variants Found: {self.details_called}\n\n')
