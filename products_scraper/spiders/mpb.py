@@ -139,6 +139,8 @@ class MpbSpider(BaseSpider):
         self.details_called += 1
         print(f'\n\nparse_details called for new variants: {self.details_called}\n\n')
 
+        return
+
         product_response = self.fetch_product_url_response(product_url)
 
         # if product request failed then we write listing page data
@@ -190,3 +192,7 @@ class MpbSpider(BaseSpider):
             return float(self.get_first_value(row, 'product_price')) / 100
         except:
             return None
+
+    def close(self, reason):
+        print(f"\n\nVariant's notes found in CSV: {self.variants_found_existing}\n\n")
+        print(f'\n\nparse_details called for new variants: {self.details_called}\n\n')
